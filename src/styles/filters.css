@@ -1,0 +1,29 @@
+/* Dual-range slider thumbs — BrowseLoansPage advanced filters */
+.dual-range-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: transparent;
+}
+.dual-range-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary, #534AB7);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 6px rgba(83,74,183,0.4);
+  pointer-events: all;
+}
+.dual-range-thumb::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary, #534AB7);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 6px rgba(83,74,183,0.4);
+  pointer-events: all;
+}

@@ -1,0 +1,400 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans, sans-serif); }
+.wrap { padding: 1.5rem 0; }
+.section-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+.page-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; margin-bottom: 24px; }
+.page-grid.cols2 { grid-template-columns: 1fr 1fr; }
+.page-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+.page-grid.cols4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.page { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 10px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+.page:hover { border-color: var(--color-border-primary); }
+.page-header { padding: 8px 10px 6px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 6px; }
+.page-tag { font-size: 9px; font-weight: 500; padding: 2px 6px; border-radius: 4px; }
+.tag-auth { background: var(--color-background-info); color: var(--color-text-info); }
+.tag-core { background: #EAF3DE; color: #3B6D11; }
+.tag-lender { background: #FAEEDA; color: #854F0B; }
+.tag-borrower { background: #FBEAF0; color: #993556; }
+.tag-trust { background: #EEEDFE; color: #534AB7; }
+.tag-admin { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+.page-title { font-size: 11px; font-weight: 500; color: var(--color-text-primary); }
+.page-body { padding: 8px 10px 10px; }
+.section-row { display: flex; gap: 4px; margin-bottom: 4px; }
+.sec { border-radius: 5px; padding: 4px 6px; font-size: 9px; color: var(--color-text-secondary); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sec.highlight { background: #EEEDFE; border-color: #AFA9EC; color: #534AB7; }
+.sec.green { background: #EAF3DE; border-color: #97C459; color: #3B6D11; }
+.sec.amber { background: #FAEEDA; border-color: #FAC775; color: #854F0B; }
+.sec.pink { background: #FBEAF0; border-color: #ED93B1; color: #993556; }
+.sec.blue { background: #E6F1FB; border-color: #85B7EB; color: #185FA5; }
+.sec.full { flex: 1; }
+.sec.half { flex: 1; min-width: 0; }
+.sec.third { flex: 1; min-width: 0; }
+.meta { font-size: 9px; color: var(--color-text-tertiary); margin-top: 6px; }
+.divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 16px 0; }
+.flow-row { display: flex; align-items: center; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+.flow-node { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 6px; padding: 4px 8px; font-size: 10px; color: var(--color-text-secondary); white-space: nowrap; }
+.flow-node.start { background: #EAF3DE; border-color: #97C459; color: #3B6D11; }
+.flow-node.end { background: #EEEDFE; border-color: #AFA9EC; color: #534AB7; }
+.flow-arrow { font-size: 12px; color: var(--color-text-tertiary); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--color-text-secondary); }
+.leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+</style>
+<div class="wrap">
+
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#3B8BD4"></div>Auth</div>
+  <div class="leg"><div class="leg-dot" style="background:#639922"></div>Core / shared</div>
+  <div class="leg"><div class="leg-dot" style="background:#BA7517"></div>Lender</div>
+  <div class="leg"><div class="leg-dot" style="background:#D4537E"></div>Borrower</div>
+  <div class="leg"><div class="leg-dot" style="background:#7F77DD"></div>Trust system</div>
+  <div class="leg"><div class="leg-dot" style="background:#888780"></div>Admin / misc</div>
+</div>
+
+<!-- AUTH PAGES -->
+<div class="section-label">1. Auth &amp; onboarding (3 pages)</div>
+<div class="page-grid cols3">
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Landing / Home page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-auth">AUTH</span>
+      <span class="page-title">Landing / Home</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full">Navbar — Logo + Login + Sign Up CTA</div></div>
+      <div class="section-row"><div class="sec full highlight">Hero — "Your reputation is your credit score"</div></div>
+      <div class="section-row">
+        <div class="sec half">How it works (3 steps)</div>
+        <div class="sec half">Stats: 190M unbanked</div>
+      </div>
+      <div class="section-row"><div class="sec full">Loan story cards preview (3 cards)</div></div>
+      <div class="section-row"><div class="sec full">CTA banner — Join as Lender / Borrower</div></div>
+      <div class="meta">Quick win: emotional impact + Kiva-style cards</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Sign Up / Onboarding page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-auth">AUTH</span>
+      <span class="page-title">Sign Up / Onboarding</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full">Step indicator — 3 steps (pill bar)</div></div>
+      <div class="section-row"><div class="sec full highlight">Step 1 — Name, phone, role (Lend / Borrow)</div></div>
+      <div class="section-row"><div class="sec full amber">Step 2 — Upload any govt ID (Aadhaar / Voter / Ration)</div></div>
+      <div class="section-row"><div class="sec full highlight">Step 3 — Trust Score generated + shown as gauge</div></div>
+      <div class="section-row"><div class="sec full green">→ Redirect to dashboard</div></div>
+      <div class="meta">No-bank onboarding — biggest differentiator</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Login page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-auth">AUTH</span>
+      <span class="page-title">Login</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full">Logo + tagline</div></div>
+      <div class="section-row"><div class="sec full">Phone / email field</div></div>
+      <div class="section-row"><div class="sec full">OTP verification (no password)</div></div>
+      <div class="section-row"><div class="sec full green">→ Dashboard redirect</div></div>
+      <div class="section-row"><div class="sec full">No account? → Onboarding</div></div>
+      <div class="meta">OTP-only = frictionless for rural users</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CORE DASHBOARD -->
+<div class="section-label">2. Core dashboard (shared across roles)</div>
+<div class="page-grid cols2">
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Main Dashboard of TrustChain including stat cards and loan feed')">
+    <div class="page-header">
+      <span class="page-tag tag-core">CORE</span>
+      <span class="page-title">Main Dashboard</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full">Sidebar — Logo, nav links, user avatar</div></div>
+      <div class="section-row">
+        <div class="sec third blue">Total lent / borrowed</div>
+        <div class="sec third green">Repayment due</div>
+        <div class="sec third highlight">Trust score</div>
+        <div class="sec third amber">Active loans</div>
+      </div>
+      <div class="section-row"><div class="sec full highlight">Trust Score meter — circular gauge 0–100</div></div>
+      <div class="section-row"><div class="sec full">Recent activity feed — scrollable</div></div>
+      <div class="section-row">
+        <div class="sec half">Quick action: Request Loan</div>
+        <div class="sec half">Quick action: Browse Loans</div>
+      </div>
+      <div class="meta">Aave-style stat cards + Kiva human story</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Transaction Log page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-core">CORE</span>
+      <span class="page-title">Transaction Log</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full">Header — "Activity log" + date filter</div></div>
+      <div class="section-row"><div class="sec full highlight">Live feed — "Ravi repaid ₹500 · 2h ago ✓"</div></div>
+      <div class="section-row"><div class="sec full highlight">Live feed — "Priya funded ₹3,000 · 5h ago"</div></div>
+      <div class="section-row"><div class="sec full highlight">Live feed — "Amit requested ₹8,000 loan"</div></div>
+      <div class="section-row">
+        <div class="sec half">Filter: All / Repaid / Funded</div>
+        <div class="sec half">Filter: Date range</div>
+      </div>
+      <div class="section-row"><div class="sec full green">Export as CSV (bonus feature)</div></div>
+      <div class="meta">Transparency without centralized control — core differentiator</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BORROWER PAGES -->
+<div class="section-label">3. Borrower flow (4 pages)</div>
+<div class="page-grid cols4">
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Borrower Profile page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-borrower">BORROWER</span>
+      <span class="page-title">My Profile</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full pink">Avatar + name + verified badge</div></div>
+      <div class="section-row"><div class="sec full highlight">Trust Score gauge — big display</div></div>
+      <div class="section-row"><div class="sec full">ID verified status</div></div>
+      <div class="section-row"><div class="sec full">Community vouchers (3 slots)</div></div>
+      <div class="section-row"><div class="sec full">Repayment history badge</div></div>
+      <div class="meta">Kiva-style profile card</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Request Loan page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-borrower">BORROWER</span>
+      <span class="page-title">Request a Loan</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full pink">Amount slider — ₹1k to ₹50k</div></div>
+      <div class="section-row"><div class="sec full">Purpose field (plain language)</div></div>
+      <div class="section-row"><div class="sec full">Repayment period — 1/3/6 months</div></div>
+      <div class="section-row"><div class="sec full">Optional: add photo / story</div></div>
+      <div class="section-row"><div class="sec full highlight">Auto risk tier — Low / Med / High</div></div>
+      <div class="meta">Main borrower action</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Repayment Tracker page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-borrower">BORROWER</span>
+      <span class="page-title">Repayment Tracker</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full pink">Active loan card — amount + due date</div></div>
+      <div class="section-row"><div class="sec full highlight">Progress bar — paid / remaining</div></div>
+      <div class="section-row"><div class="sec full">Pay instalment button</div></div>
+      <div class="section-row"><div class="sec full">Repayment schedule — calendar view</div></div>
+      <div class="section-row"><div class="sec full green">Badge: "On time payer ✓"</div></div>
+      <div class="meta">Builds trust score over time</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Community Vouching page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-borrower">BORROWER</span>
+      <span class="page-title">Community Vouching</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full highlight">How vouching works — 3-step explainer</div></div>
+      <div class="section-row"><div class="sec full pink">Invite vouchers — share link / QR</div></div>
+      <div class="section-row"><div class="sec full">Voucher 1 — avatar + trust level</div></div>
+      <div class="section-row"><div class="sec full">Voucher 2 — pending</div></div>
+      <div class="section-row"><div class="sec full">Voucher 3 — pending</div></div>
+      <div class="meta">Unique killer feature — Grameen Bank model</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LENDER PAGES -->
+<div class="section-label">4. Lender flow (3 pages)</div>
+<div class="page-grid cols3">
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Browse Loans page of TrustChain for lenders')">
+    <div class="page-header">
+      <span class="page-tag tag-lender">LENDER</span>
+      <span class="page-title">Browse Loans</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row">
+        <div class="sec half">Filter: Risk tier</div>
+        <div class="sec half">Filter: Amount</div>
+      </div>
+      <div class="section-row"><div class="sec full amber">Loan card — photo, name, purpose, ₹amount</div></div>
+      <div class="section-row"><div class="sec full amber">Funding progress bar</div></div>
+      <div class="section-row"><div class="sec full">Risk badge — Low / Med / High</div></div>
+      <div class="section-row"><div class="sec full">Trust score of borrower</div></div>
+      <div class="section-row"><div class="sec full">Fund this loan → CTA button</div></div>
+      <div class="meta">Kiva-style loan story cards — emotional impact</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Lender Dashboard of TrustChain showing portfolio stats')">
+    <div class="page-header">
+      <span class="page-tag tag-lender">LENDER</span>
+      <span class="page-title">Lender Dashboard</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row">
+        <div class="sec half amber">Total lent</div>
+        <div class="sec half green">Interest earned</div>
+      </div>
+      <div class="section-row">
+        <div class="sec half">Active loans</div>
+        <div class="sec half">Repayments received</div>
+      </div>
+      <div class="section-row"><div class="sec full amber">Portfolio health bar</div></div>
+      <div class="section-row"><div class="sec full">My loans — list with repayment status</div></div>
+      <div class="section-row"><div class="sec full">Browse more loans CTA</div></div>
+      <div class="meta">Aave-style wallet dashboard</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Fund a Loan / Confirm page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-lender">LENDER</span>
+      <span class="page-title">Fund a Loan (Confirm)</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full">Borrower profile summary card</div></div>
+      <div class="section-row"><div class="sec full">Amount to fund — input field</div></div>
+      <div class="section-row"><div class="sec full amber">Expected return — % + ₹ amount</div></div>
+      <div class="section-row"><div class="sec full highlight">Smart contract summary (simulated)</div></div>
+      <div class="section-row"><div class="sec full green">Confirm &amp; Fund — CTA</div></div>
+      <div class="meta">Goldfinch-inspired community-backed model</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TRUST SYSTEM -->
+<div class="section-label">5. Trust system (2 pages)</div>
+<div class="page-grid cols2">
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Trust Score detail page of TrustChain showing how the score is calculated')">
+    <div class="page-header">
+      <span class="page-tag tag-trust">TRUST</span>
+      <span class="page-title">Trust Score Detail</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full highlight">Large circular gauge — 0 to 100</div></div>
+      <div class="section-row">
+        <div class="sec third highlight">ID verified +30</div>
+        <div class="sec third highlight">Repaid loans +40</div>
+        <div class="sec third highlight">Vouchers +30</div>
+      </div>
+      <div class="section-row"><div class="sec full">Score history — mini line chart</div></div>
+      <div class="section-row"><div class="sec full">How to improve — tips list</div></div>
+      <div class="section-row"><div class="sec full">Risk tier assigned — Low / Med / High badge</div></div>
+      <div class="meta">Core differentiator — replaces credit score</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Identity Verification page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-trust">TRUST</span>
+      <span class="page-title">Identity Verification</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full highlight">Step 1 — Choose doc type (Aadhaar / Voter / Ration / Utility)</div></div>
+      <div class="section-row"><div class="sec full">Step 2 — Upload photo of doc</div></div>
+      <div class="section-row"><div class="sec full">Step 3 — Selfie / face match (simulated)</div></div>
+      <div class="section-row"><div class="sec full green">Verified badge awarded</div></div>
+      <div class="section-row"><div class="sec full highlight">Trust Score increases — animated</div></div>
+      <div class="meta">Non-standard docs accepted — most India-specific feature</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FRAUD / COMMUNITY -->
+<div class="section-label">6. Governance &amp; fraud (2 pages)</div>
+<div class="page-grid cols2">
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Community Fraud Voting page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-admin">GOV</span>
+      <span class="page-title">Community Fraud Voting</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full">Flagged loan — details card</div></div>
+      <div class="section-row">
+        <div class="sec half pink">Vote: Suspicious</div>
+        <div class="sec half green">Vote: Legitimate</div>
+      </div>
+      <div class="section-row"><div class="sec full">Community vote count — progress bar</div></div>
+      <div class="section-row"><div class="sec full">Outcome: revoke / approve</div></div>
+      <div class="meta">From humayoualisaral — judge-impressive governance</div>
+    </div>
+  </div>
+
+  <div class="page" onclick="sendPrompt('Give me the detailed layout and all UI elements for the Loan Governance / Approval Voting page of TrustChain')">
+    <div class="page-header">
+      <span class="page-tag tag-admin">GOV</span>
+      <span class="page-title">Loan Approval Voting</span>
+    </div>
+    <div class="page-body">
+      <div class="section-row"><div class="sec full">Loan request — borrower card</div></div>
+      <div class="section-row"><div class="sec full">Risk breakdown — 3 factors</div></div>
+      <div class="section-row"><div class="sec full highlight">Community vote — approve / reject</div></div>
+      <div class="section-row"><div class="sec full">Vote tally — live progress bar</div></div>
+      <div class="section-row"><div class="sec full">Auto-outcome at 51% threshold</div></div>
+      <div class="meta">DeFiPlex governance UI — very demo-friendly</div>
+    </div>
+  </div>
+
+</div>
+
+<hr class="divider">
+
+<!-- USER FLOW -->
+<div class="section-label">User flow — how pages connect</div>
+<div class="flow-row">
+  <div class="flow-node start">Landing</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Sign Up</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">ID Verify</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Trust Score</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Dashboard</div>
+</div>
+<div class="flow-row">
+  <div class="flow-node">Dashboard</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Browse Loans</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Fund Loan</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Lender Dashboard</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node end">Transaction Log</div>
+</div>
+<div class="flow-row">
+  <div class="flow-node">Dashboard</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Request Loan</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Community Vouch</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Repayment Tracker</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node end">Trust Score ↑</div>
+</div>
+
+</div>
