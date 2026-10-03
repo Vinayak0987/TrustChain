@@ -296,38 +296,48 @@ const OtpStep = ({ onNext, onBack }) => {
     e.preventDefault();
   };
 
+  const e164Phone = (raw) => {
+    const clean = raw.replace(/\D/g, '').slice(0, 10);
+    return clean.length === 10 ? `+91${clean}` : '';
+  };
+
   const sendOtp = async () => {
     setError('');
     const cleanPhone = phone.replace(/\D/g, '').slice(0, 10);
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) return setError('Enter a valid 10-digit Indian mobile number.');
-    
+
     setLoading(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      // If the user already has this phone number assigned and verified, skip the SMS flow!
-      if (user && (user.phone === `+91${cleanPhone}` || user.phone === `91${cleanPhone}`)) {
+      if (!user) {
+        setLoading(false);
+        return setError('You must be logged in before verifying your mobile number.');
+      }
+
+      if (user.phone === `+91${cleanPhone}` || user.phone === `91${cleanPhone}`) {
         setLoading(false);
         onNext({ phoneNumber: cleanPhone });
         return;
       }
 
-      const { error: err } = await supabase.auth.updateUser({
-        phone: `+91${cleanPhone}`
-      });
+      const { error: err } = await supabase.auth.updateUser({ phone: `+91${cleanPhone}` });
       setLoading(false);
-      
+
       if (err) {
         if (err.status === 429) return setError('Too many requests. Please wait 60 seconds before trying again.');
-        return setError(err.message);
+        if (err.code === 'phone_exists') {
+          return setError(`+91 ${cleanPhone} is already linked to another account. Sign in with that account or use a different number.`);
+        }
+        return setError(err.message || 'Could not send SMS. Please try again.');
       }
-      
+
       setOtpSent(true);
       setCooldown(60);
       setDigits(['', '', '', '', '', '']);
-    } catch (e) {
+    } catch {
       setLoading(false);
-      setError('An unexpected error occurred.');
+      setError('Cannot reach Supabase. Check your internet connection.');
     }
   };
 
@@ -336,13 +346,17 @@ const OtpStep = ({ onNext, onBack }) => {
     setError('');
     const token = digits.join('');
     if (token.length < 6) return setError('Enter the complete 6-digit OTP.');
+    const formatted = e164Phone(phone);
+    if (!formatted) return setError('Enter a valid 10-digit Indian mobile number.');
     setLoading(true);
     const { error: err } = await supabase.auth.verifyOtp({
-      phone: `+91${phone}`, token, type: 'phone_change'
+      phone: formatted,
+      token,
+      type: 'phone_change',
     });
     setLoading(false);
-    if (err) return setError('Invalid OTP. Please check your SMS and try again.');
-    onNext({ phoneNumber: phone });
+    if (err) return setError(err.message || 'Invalid OTP. Please check your SMS and try again.');
+    onNext({ phoneNumber: phone.replace(/\D/g, '').slice(0, 10) });
   };
 
   return (
@@ -391,22 +405,68 @@ const OtpStep = ({ onNext, onBack }) => {
 };
 
 // ─── STEP 4: Face Detection & Match ────────────────────────────
+const DETECT_INTERVAL_MS = 300;
+const UI_UPDATE_MS = 400;
+const MODEL_LOAD_TIMEOUT_MS = 45000;
+
+const yieldToMain = () => new Promise((r) => setTimeout(r, 0));
+
+const withTimeout = (promise, ms, label) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), ms)),
+  ]);
+
+const faceModelsAvailable = async () => {
+  try {
+    const res = await fetch('/models/tiny_face_detector_model-weights_manifest.json', { method: 'HEAD' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+};
+
+let livenessModelsPromise = null;
+const loadLivenessModels = async () => {
+  if (!livenessModelsPromise) {
+    livenessModelsPromise = (async () => {
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+      await yieldToMain();
+      await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+    })();
+  }
+  return withTimeout(livenessModelsPromise, MODEL_LOAD_TIMEOUT_MS, 'Face detection models');
+};
+
+let recognitionModelPromise = null;
+const loadRecognitionModel = async () => {
+  if (!recognitionModelPromise) {
+    recognitionModelPromise = faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+  }
+  return withTimeout(recognitionModelPromise, MODEL_LOAD_TIMEOUT_MS, 'Face match model');
+};
+
+const tinyDetectOpts = () => new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+
 const FaceStep = ({ onNext, onBack, collectedData }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
-  const animationRef = useRef(null);
+  const detectionTimerRef = useRef(null);
+  const detectInFlightRef = useRef(false);
   const blinkCountRef = useRef(0);
   const eyeStateRef = useRef('open');
   const detectionActiveRef = useRef(false);
-  
+  const earDisplayRef = useRef(null);
+  const lastUiUpdateRef = useRef(0);
+
   const [status, setStatus] = useState('idle');
+  const [loadPhase, setLoadPhase] = useState('');
   const [blinkCount, setBlinkCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [currentEAR, setCurrentEAR] = useState(null);
   const [manualBlinks, setManualBlinks] = useState(0);
-  const [noFaceTimer, setNoFaceTimer] = useState(0);
-  
+
   const REQUIRED_BLINKS = 2;
   const EAR_THRESHOLD = 0.25;
 
@@ -418,54 +478,95 @@ const FaceStep = ({ onNext, onBack, collectedData }) => {
     return (A + B) / (2.0 * C);
   };
 
+  const scheduleDetection = useCallback((fn) => {
+    if (detectionTimerRef.current) clearTimeout(detectionTimerRef.current);
+    detectionTimerRef.current = setTimeout(fn, DETECT_INTERVAL_MS);
+  }, []);
+
+  const syncFaceUi = useCallback((ear) => {
+    const now = Date.now();
+    if (now - lastUiUpdateRef.current < UI_UPDATE_MS) return;
+    lastUiUpdateRef.current = now;
+    setCurrentEAR(ear);
+    setBlinkCount(blinkCountRef.current);
+  }, []);
+
   const startCamera = async () => {
-    setStatus('loading');
-    try {
-      console.log('Loading face-api models...');
-      await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
-      await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
-      await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
-      console.log('All models loaded!');
-    } catch (e) {
-      console.warn('Model load warning (will use manual mode):', e.message);
+    setErrorMessage('');
+    blinkCountRef.current = 0;
+    eyeStateRef.current = 'open';
+    setBlinkCount(0);
+    setManualBlinks(0);
+
+    const modelsOk = await faceModelsAvailable();
+    if (!modelsOk) {
+      setStatus('error');
+      setErrorMessage('Face models missing. Run: node scripts/download_models.js — then refresh the page.');
+      return;
     }
+
+    setStatus('loading');
+    setLoadPhase('Opening camera...');
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 } },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await new Promise(resolve => { videoRef.current.onloadedmetadata = resolve; });
-        await videoRef.current.play();
-        setStatus('detecting');
-        setTimeout(startDetectionLoop, 1500);
-      }
-    } catch (e) {
-      console.error('Camera error:', e);
+      if (!videoRef.current) return;
+
+      videoRef.current.srcObject = stream;
+      await new Promise((resolve) => { videoRef.current.onloadedmetadata = resolve; });
+      await videoRef.current.play();
+
+      setStatus('detecting');
+      setLoadPhase('Loading face detection (first time may take 20–30s)...');
+
+      loadLivenessModels()
+        .then(() => {
+          setLoadPhase('');
+          startDetectionLoop();
+        })
+        .catch((e) => {
+          setLoadPhase('');
+          setErrorMessage(
+            e?.message?.includes('timed out')
+              ? 'AI models took too long to load. Refresh the page or use the manual blink button below.'
+              : 'Could not load face models. Run: node scripts/download_models.js'
+          );
+        });
+    } catch {
       setStatus('error');
       setErrorMessage('Camera access denied. Please allow camera access and retry.');
     }
   };
 
   const startDetectionLoop = () => {
+    if (!faceapi.nets.tinyFaceDetector.isLoaded) return;
     if (detectionActiveRef.current) return;
     detectionActiveRef.current = true;
-    let noFaceFrames = 0;
-    
-    const loop = async () => {
+    detectInFlightRef.current = false;
+
+    const tick = async () => {
       if (!detectionActiveRef.current || !videoRef.current || videoRef.current.paused) return;
+      if (detectInFlightRef.current) {
+        scheduleDetection(tick);
+        return;
+      }
+
+      detectInFlightRef.current = true;
       try {
         const detection = await faceapi
-          .detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.25 }))
+          .detectSingleFace(videoRef.current, tinyDetectOpts())
           .withFaceLandmarks();
 
         if (detection) {
-          noFaceFrames = 0;
+          const landmarks = detection.landmarks;
+          const ear = (getEAR(landmarks.getLeftEye()) + getEAR(landmarks.getRightEye())) / 2;
+          earDisplayRef.current = ear;
+          syncFaceUi(ear);
 
-          // Draw landmarks onto the canvas ref
-          if (canvasRef.current) {
+          if (canvasRef.current && videoRef.current) {
             const dims = { width: videoRef.current.videoWidth, height: videoRef.current.videoHeight };
             faceapi.matchDimensions(canvasRef.current, dims);
             const resized = faceapi.resizeResults(detection, dims);
@@ -474,18 +575,12 @@ const FaceStep = ({ onNext, onBack, collectedData }) => {
             faceapi.draw.drawFaceLandmarks(canvasRef.current, resized);
           }
 
-          const landmarks = detection.landmarks;
-          const ear = (getEAR(landmarks.getLeftEye()) + getEAR(landmarks.getRightEye())) / 2;
-          setCurrentEAR(ear);
-
-          // Blink state machine using refs to avoid stale closure issues
           if (ear < EAR_THRESHOLD) {
             eyeStateRef.current = 'closed';
           } else if (eyeStateRef.current === 'closed') {
             eyeStateRef.current = 'open';
             blinkCountRef.current += 1;
-            setBlinkCount(blinkCountRef.current);
-            console.log('Blink detected:', blinkCountRef.current);
+            syncFaceUi(ear);
 
             if (blinkCountRef.current >= REQUIRED_BLINKS) {
               detectionActiveRef.current = false;
@@ -494,112 +589,102 @@ const FaceStep = ({ onNext, onBack, collectedData }) => {
             }
           }
         } else {
-          noFaceFrames++;
-          setCurrentEAR(null);
-          setNoFaceTimer(noFaceFrames);
+          earDisplayRef.current = null;
+          syncFaceUi(null);
           if (canvasRef.current) {
             const ctx = canvasRef.current.getContext('2d');
             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
           }
         }
-      } catch (err) {
-        console.warn('Detection frame error:', err.message);
+      } catch {
+        // skip frame
+      } finally {
+        detectInFlightRef.current = false;
+        if (detectionActiveRef.current) scheduleDetection(tick);
       }
-      animationRef.current = requestAnimationFrame(loop);
     };
-    loop();
+
+    scheduleDetection(tick);
+  };
+
+  const finishLivenessOnly = () => {
+    detectionActiveRef.current = false;
+    stopCamera();
+    setStatus('done');
   };
 
   const captureAndMatch = async () => {
-    // ⚠️ IMPORTANT: Capture snapshot BEFORE stopping the camera.
-    // stopCamera() kills the stream — drawImage() needs the stream alive.
-    detectionActiveRef.current = false; // Stop the detection loop without killing the video
+    detectionActiveRef.current = false;
     setStatus('matching');
+    setLoadPhase('Comparing with your ID photo...');
 
     let liveDescriptor = null;
 
     try {
-      // Capture live frame while video is still streaming
+      await loadRecognitionModel();
+      await yieldToMain();
+
       const snapCanvas = document.createElement('canvas');
       const video = videoRef.current;
       snapCanvas.width = video?.videoWidth || 640;
       snapCanvas.height = video?.videoHeight || 480;
       snapCanvas.getContext('2d').drawImage(video, 0, 0);
-      console.log('📸 Snapshot captured:', snapCanvas.width, 'x', snapCanvas.height);
-
-      // Now stop the camera (stream no longer needed)
       stopCamera();
 
-      // Detect face in snapshot — chain: withFaceLandmarks() → withFaceDescriptor()
       const snapDet = await faceapi
-        .detectSingleFace(snapCanvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.2 }))
+        .detectSingleFace(snapCanvas, tinyDetectOpts())
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (snapDet) {
         liveDescriptor = snapDet.descriptor;
-        console.log('✅ Live face descriptor extracted.');
       } else {
-        console.warn('No face in snapshot — trying lower confidence...');
-        // Retry with very low threshold as fallback
         const retry = await faceapi
-          .detectSingleFace(snapCanvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 }))
+          .detectSingleFace(snapCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
-        if (retry) {
-          liveDescriptor = retry.descriptor;
-          console.log('✅ Live face descriptor extracted (low-conf fallback).');
-        }
+        if (retry) liveDescriptor = retry.descriptor;
       }
-    } catch (e) {
-      console.warn('Snapshot extraction failed:', e.message);
+    } catch {
       stopCamera();
     }
 
+    setLoadPhase('');
     if (!liveDescriptor) {
-      console.warn('Could not extract live descriptor. Passing on liveness alone.');
       setStatus('done');
       return;
     }
 
     const referenceUrl = collectedData?.aadhaar_image_url || collectedData?.pan_image_url;
     if (!referenceUrl) {
-      console.warn('No document image URL. Skipping match — passing on liveness.');
       setStatus('done');
       return;
     }
 
     try {
-      console.log('🔍 Fetching reference ID image:', referenceUrl);
       const refImage = await faceapi.fetchImage(referenceUrl);
-
-      // Detect on ID card — chain: withFaceLandmarks() → withFaceDescriptor()
       const refDet = await faceapi
-        .detectSingleFace(refImage, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.15 }))
+        .detectSingleFace(refImage, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (!refDet) {
-        console.warn('No face found on ID card. Passing on liveness alone.');
         setStatus('done');
         return;
       }
 
       const dist = faceapi.euclideanDistance(liveDescriptor, refDet.descriptor);
       const score = Math.max(0, ((1 - dist) * 100)).toFixed(1);
-      console.log(`🎯 Match Score: ${score}% | Distance: ${dist.toFixed(3)}`);
 
       if (dist <= 0.65) {
-        console.log('✅ Face match PASSED');
         setStatus('done');
       } else {
-        console.warn('❌ Face match FAILED');
         setStatus('error');
-        setErrorMessage(`Face mismatch detected (${score}% similarity). Ensure good lighting and that you are looking directly at the camera.`);
+        setErrorMessage(`Face mismatch detected (${score}% similarity). Ensure good lighting and look at the camera.`);
       }
-    } catch (e) {
-      console.error('ID match error:', e.message);
-      setStatus('done'); // Liveness was confirmed, proceed
+    } catch {
+      setLoadPhase('');
+      setStatus('done');
     }
   };
 
@@ -608,23 +693,33 @@ const FaceStep = ({ onNext, onBack, collectedData }) => {
     setManualBlinks(next);
     setBlinkCount(next);
     if (next >= REQUIRED_BLINKS) {
-      detectionActiveRef.current = false;
-      captureAndMatch();
+      if (faceapi.nets.tinyFaceDetector.isLoaded) captureAndMatch();
+      else finishLivenessOnly();
     }
   };
 
   const stopCamera = () => {
     detectionActiveRef.current = false;
-    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    detectInFlightRef.current = false;
+    if (detectionTimerRef.current) {
+      clearTimeout(detectionTimerRef.current);
+      detectionTimerRef.current = null;
+    }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
   };
 
-  useEffect(() => () => stopCamera(), []);
+  useEffect(() => {
+    faceModelsAvailable().then((ok) => {
+      if (ok) loadLivenessModels().catch(() => {});
+    });
+    return () => stopCamera();
+  }, []);
 
   const faceDetected = currentEAR !== null;
+  const modelsLoading = status === 'detecting' && !!loadPhase;
 
   return (
     <div style={{ width: '100%' }}>
@@ -652,10 +747,23 @@ const FaceStep = ({ onNext, onBack, collectedData }) => {
           </div>
         )}
 
-        {(status === 'loading' || status === 'matching') && (
+        {status === 'loading' && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(6px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', textAlign: 'center', padding: '24px' }}>
-            <div style={{ width: '48px', height: '48px', border: '4px solid rgba(255,255,255,0.2)', borderTopColor: '#3B9B9B', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '16px' }}></div>
-            <p style={{ fontWeight: 600, fontSize: '15px' }}>{status === 'loading' ? 'Loading AI Models...' : 'Comparing with ID card...'}</p>
+            <div style={{ width: '48px', height: '48px', border: '4px solid rgba(255,255,255,0.2)', borderTopColor: '#3B9B9B', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '16px' }} />
+            <p style={{ fontWeight: 600, fontSize: '15px' }}>{loadPhase || 'Opening camera...'}</p>
+          </div>
+        )}
+
+        {modelsLoading && (
+          <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px', background: 'rgba(15,23,42,0.9)', color: '#e2e8f0', fontSize: '12px', padding: '10px 14px', borderRadius: '10px', textAlign: 'center' }}>
+            {loadPhase} You can use the manual blink button while waiting.
+          </div>
+        )}
+
+        {status === 'matching' && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(6px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', textAlign: 'center', padding: '24px' }}>
+            <div style={{ width: '48px', height: '48px', border: '4px solid rgba(255,255,255,0.2)', borderTopColor: '#3B9B9B', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '16px' }} />
+            <p style={{ fontWeight: 600, fontSize: '15px' }}>{loadPhase || 'Comparing with ID card...'}</p>
           </div>
         )}
 
@@ -679,11 +787,22 @@ const FaceStep = ({ onNext, onBack, collectedData }) => {
       </div>
 
       {/* Manual Blink Button — shown during detection */}
+      {errorMessage && status === 'detecting' && (
+        <div style={{ background: '#FEE2E2', color: '#DC2626', padding: '10px', borderRadius: '8px', fontSize: '13px', marginBottom: '12px' }}>
+          ⚠ {errorMessage}
+        </div>
+      )}
+
       {status === 'detecting' && (
         <div style={{ marginBottom: '16px' }}>
-          {!faceDetected && (
+          {!faceDetected && !modelsLoading && (
             <p style={{ fontSize: '12px', color: '#f59e0b', textAlign: 'center', marginBottom: '10px', fontWeight: 600 }}>
-              ⚠ AI can't detect your face. Use the button below to blink manually.
+              ⚠ AI can&apos;t detect your face yet. Use the button below to blink manually.
+            </p>
+          )}
+          {modelsLoading && (
+            <p style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', marginBottom: '10px' }}>
+              Loading AI in the background — manual blink still works.
             </p>
           )}
           <button

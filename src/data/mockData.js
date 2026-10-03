@@ -6,7 +6,7 @@ export const MOCK_USER = {
   phone: '+91 98765 43210',
   role: 'borrower', // 'borrower' | 'lender'
   verified: true,
-  trustScore: 72,
+  trustScore: 50,
   avatar: null,
   joined: 'Jan 2026',
   location: 'Pune, Maharashtra',
@@ -223,12 +223,12 @@ export const TRUST_SCORE_FACTORS = [
 ];
 
 export const TRUST_HISTORY = [
-  { month: 'Oct', score: 40 },
-  { month: 'Nov', score: 48 },
-  { month: 'Dec', score: 55 },
-  { month: 'Jan', score: 61 },
-  { month: 'Feb', score: 68 },
-  { month: 'Mar', score: 72 },
+  { month: 'Oct', score: 35 },
+  { month: 'Nov', score: 38 },
+  { month: 'Dec', score: 42 },
+  { month: 'Jan', score: 45 },
+  { month: 'Feb', score: 48 },
+  { month: 'Mar', score: 50 },
 ];
 
 export const IMPROVEMENT_TIPS = [

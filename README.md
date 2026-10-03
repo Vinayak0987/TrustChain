@@ -1,85 +1,195 @@
-# TrustChain - Web3 Decentralized Lending Platform
+<div align="center">
 
-TrustChain is a peer-to-peer micro-lending Decentralized Application (dApp) built for the Hackathon. It bridges local communities through a community-governed Trust Score, allowing users to lend and borrow transparently with zero traditional bank dependencies.
+<h1><img src="./public/logo.svg" width="40" alt="Logo" style="vertical-align: middle; margin-bottom: 8px;"/> TrustChain — Decentralized Trust Economy</h1>
 
-## 🛠️ Technology Stack
-*   **Frontend:** React 19, Vite, Javascript, Vanilla CSS (Antigravity Design System)
-*   **Blockchain Integration:** Ethers.js v6, Hardhat, Web3Context
-*   **Smart Contracts:** Solidity (`TrustChain.sol`)
-*   **Wallet Authentication:** MetaMask
+**A premium, web3-powered peer-to-peer micro-lending ecosystem bridging the gap between borrowers and lenders through AI identity verification, on-chain trust scores, and secure smart contracts.**
 
----
+--- 
 
-## 🚀 How to Run the Project from Scratch
+[![React](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-8.0-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vitejs.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
+[![Solidity](https://img.shields.io/badge/Solidity-Smart_Contracts-363636?style=for-the-badge&logo=solidity&logoColor=white)](https://soliditylang.org/)
+[![Ethereum](https://img.shields.io/badge/Ethereum-Web3-3C3C3D?style=for-the-badge&logo=Ethereum&logoColor=white)](https://ethereum.org/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-Styling-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
 
-To launch the entire platform, you must spin up three components locally: The Blockchain, The Smart Contract, and The Visual Frontend. Open your `trustchain-react` directory and follow these exact steps:
-
-### Terminal 1: Spin up the Local Blockchain
-This command launches a local isolated Ethereum network and provides you with 20 pre-funded test accounts containing 10,000 fake ETH each. 
-*(Leave this terminal window completely open and running in the background).*
-```bash
-npx hardhat node
-```
-
-### Terminal 2: Deploy the Smart Contract
-Open a second terminal window. You need to deploy our core financial logic (`TrustChain.sol`) to the blockchain you just started. This custom deployment script automatically updates your React frontend with the live contract address!
-```bash
-node scripts/deploy.js
-```
-
-### Terminal 3: Start the React App
-In the same second terminal window, spin up the local web deployment server.
-```bash
-npm run dev -- --port 4321
-```
-Your application is now fully alive! Open your browser to **http://localhost:4321**
+</div>
 
 ---
 
-## 🦊 Setting up MetaMask for Demoing
+## 🌟 Overview
 
-Before you test the UI, you must configure your MetaMask wallet to interact with your local development Blockchain.
+TrustChains is a state-of-the-art decentralized lending platform designed to unify the peer-to-peer financial journey. By connecting Borrowers, Lenders, and Community Governors into a single, cohesive ecosystem, TrustChains removes banking intermediaries and empowers users with real-time on-chain trust scoring, AI-driven identity verification, and immutable smart contract execution.
 
-**1. Point MetaMask to Localhost**
-* Open MetaMask -> Click the **Network Dropdown** (top left/right).
-* Click **Add Network** -> **Add a network manually**.
-* **Network Name:** Localhost 8545
-* **New RPC URL:** `http://127.0.0.1:8545`
-* **Chain ID:** `31337`
-* **Currency Symbol:** `ETH`
-* **Save** and Switch to this network.
+<br/>
 
-**2. Import the Hackathon Actors (Accounts)**
-Look at Terminal 1 where `npx hardhat node` is running. You will see Account #0 and Account #1.
-* In MetaMask, click **Add account or hardware wallet** -> **Import Account**.
-* Copy the **Private Key** for `Account #0` from the terminal and paste it in. (This is identical to your **Borrower**)
-* Repeat the process to import `Account #1` (This is your **Lender**).
+<div align="center">
+
+## 🏗️ System Architecture
+![Architecture Diagram](./assets/Architecture_diagram.png)
+
+</div>
 
 ---
 
-## 🎬 How to Perform the Live Pitch Demo
+## 🎭 Role-Based Access
 
-### Part 1: The Borrower Flow
-1. Open MetaMask and ensure **Account #0** is selected.
-2. Go to `http://localhost:4321` and click **Get a Loan**.
-3. Click **Connect MetaMask** (A popup asks for signature permission).
-4. *(Behind the scenes, TrustChain auto-registers your unique address on the Blockchain and initializes your Trust Score!)*
-5. Navigate the identity wizard to the Dashboard.
-6. Click **Request Loan**, enter your amount/purpose, and click **Sign & Submit with Web3**.
-7. MetaMask will pop up: Click **Confirm** to permanently write the loan request to the block ledger.
+TrustChains provides custom-tailored environments for key participants in the decentralized economy:
 
-### Part 2: The Lender Flow
-1. Open the MetaMask extension bubble and switch your active account dropdown to **Account #1**.
-2. Go to the web app sidebar and click **Logout** (or refresh to back out to the Landing Page).
-3. Click **Connect MetaMask** to log in as the newly injected Lender account.
-4. Go to **Lend** to view the browse page. Our polling engine dynamically hits the Blockchain and renders the exact loan Account #0 just submitted!
-5. Click **Fund with Web3** next to the loan.
-6. MetaMask pops up: Click **Confirm**. The ETH instantly moves from Lender #1 to Borrower #0 inside the Smart Contract!
+| 🧑‍💻 Borrower Portal | 🏦 Lender Dashboard | ⚖️ Community Governance |
+| :--- | :--- | :--- |
+| • Secure KYC & identity verification<br>• Real-time on-chain Trust Score building<br>• Request decentralized micro-loans<br>• Track EMIs and scheduled repayments | • Portfolio & investment analytics<br>• Filter high-trust borrower requests<br>• Fund loans securely via smart contracts<br>• Track financial returns and active assets | • Vouch for trusted community members<br>• Vote to approve borderline loan requests<br>• Flag and penalize fraudulent actors |
 
 ---
 
-## 🔄 Resetting the App for Next Judge/Demo
-If you want to physically disconnect to start from absolute scratch (as if presenting to a new judge):
-1. Open MetaMask. Click the **Connected** status bubble or the Three Dots next to your account name.
-2. Click **Connected sites** -> Find `localhost:4321` and click **Disconnect**.
-3. Refresh your React Web App. The app no longer knows who you are, allowing you to show the beautiful "Connect Web3 Wallet" popup flow all over again!
+## 🧑‍💻 Borrower Experience
+
+### 🔐 Secure Authentication
+![Authentication Page](./assets/AuthnticationPage.png)
+TrustChains features an advanced authentication system backed by Supabase. During onboarding, borrowers set up their profiles and begin their journey toward building a decentralized financial identity.
+
+---
+
+### 🪪 KYC AI-Powered Face Verification
+![Face Verification](./assets/KYC_VERFICATION.png)
+A crucial step in establishing trust. Using advanced `face-api.js` models, the system ensures real-time liveness detection and matches the user's physical presence, preventing bot accounts and sybil attacks.
+
+---
+
+### 📄 Document OCR Validation
+![Identity Verification](./assets/Identity_verfication.png)
+Seamless extraction and validation of Aadhaar and PAN documents using Optical Character Recognition (OCR) via Tesseract.js, ensuring legal compliance without manual intervention.
+
+---
+
+### 🦊 Web3 Wallet Integration
+![MetaMask Connection](./assets/MetaMask.png)
+
+A secure bridge to the blockchain. Users connect their MetaMask wallet to cryptographically sign loan agreements, receive funds, and execute repayments directly on the Ethereum network.
+
+---
+
+### 📊 Borrower Command Dashboard
+![Main Dashboard](./assets/MainDashBoard.png)
+The borrower’s central hub, displaying live on-chain Trust Scores, active loan statuses, pending repayments, and recent community activity in a unified, beautifully designed interface.
+
+---
+
+### 👤 On-Chain Trust Profile
+![Profile Page](./assets/Profile_page.png)
+A detailed breakdown of a user's Trust Score factors. Borrowers can track their progress across KYC verification points, historical repayment streaks, and the strength of their community endorsements.
+
+---
+
+### 💸 Request Decentralized Loans
+![Request Loan](./assets/Request_loan.png)
+A streamlined application engine enabling borrowers to request micro-loans. Users specify their required principal and purpose, while the system dynamically determines their eligible interest rate based on their active Trust Tier.
+
+---
+
+### 📅 EMI & Repayment Tracker
+![Repayment Tracker](./assets/Repayment_Tracker.png)
+A visual scheduling tool for borrowers to track upcoming EMI dates, view their remaining balance, and execute on-time repayments directly to the smart contract to boost their Trust Score.
+
+---
+
+## 🏦 Lender Suite
+
+### 📈 Lender Operations Dashboard
+![Lender Dashboard](./assets/Lender_dashboard.png)
+A high-level operations panel built for lenders to monitor their active investments, view overall capital deployed, and track generated interest returns across their decentralized portfolio.
+
+---
+
+### 🔍 Browse & Filter Marketplace
+![Browse Loans](./assets/Browse_Loan.png)
+An intuitive discovery marketplace where lenders can browse active loan requests. The system allows sorting by Trust Score, requested amount, and community backing to ensure safe capital allocation.
+
+---
+
+### 💰 Secure Smart Contract Funding
+![Fund Loan](./assets/Fund_loan.png)
+The execution interface where lenders review loan agreements, digitally countersign, and seamlessly release funds. The capital is locked and transferred autonomously via the TrustChain Solidity smart contract.
+
+---
+
+## ⚖️ Community Governance
+
+### 🤝 Community Pods & Endorsements
+![Community Pods](./assets/My_community.png)
+An interactive community network enabling users to form "Trust Pods." Members can vouch for each other, providing social proof that intrinsically boosts the collective Trust Score of the group.
+
+---
+
+### ✅ Decentralized Loan Approval
+![Loan Approval](./assets/Loan_approval.png)
+A democratic voting system where community members review and approve borderline or high-value loan requests, ensuring that risky loans are vetted by trusted peers before funding.
+
+---
+
+### 🚨 Fraud Prevention Voting
+![Fraud Voting](./assets/Fraud_voting.png)
+A decentralized security mechanism. The community can flag, review, and vote to penalize suspicious actors or defaulters, permanently lowering their on-chain Trust Score and protecting lenders.
+
+---
+
+### 📜 Immutable Transaction Ledger
+![Transaction Log](./assets/Transaction_log.png)
+A transparent, immutable history of all platform activity, including loan disbursements, repayments, and governance votes, securely anchored to the blockchain.
+
+---
+
+<br/>
+
+<div align="center">
+
+## 🎥 Live Demonstration
+
+<h3><a href="https://bit.ly/43tKse1">📺 Watch the TrustChains Demo Video Here</a></h3>
+
+<img src="./assets/QrCode.png" alt="Scan to use TrustChains" width="150" />
+<br />
+**Scan the QR Code to experience TrustChains on your mobile device.**
+
+</div>
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+### 💻 Frontend
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+[![Ethers.js](https://img.shields.io/badge/Ethers.js-000000?style=for-the-badge)](https://docs.ethers.org/)
+
+* **Architecture**: Blazing fast Single Page Application (SPA) built with Vite and React 19.
+* **Web3 Integration**: Ethers.js for seamless interaction with Ethereum smart contracts and MetaMask.
+* **Design Language**: Modern UI/UX utilizing Tailwind CSS utility classes and custom animations.
+
+---
+
+### ⚙️ Backend, Storage & AI
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
+[![Face API](https://img.shields.io/badge/Face_API.js-0080FF?style=for-the-badge&logo=javascript&logoColor=white)](https://github.com/justadudewhohacks/face-api.js/)
+[![Tesseract OCR](https://img.shields.io/badge/Tesseract.js-1A2B3D?style=for-the-badge&logo=javascript&logoColor=white)](https://tesseract.projectnaptha.com/)
+
+* **Database & Auth**: Supabase PostgreSQL database for off-chain metadata, user profiles, and secure JWT authentication.
+* **Identity Verification**: On-device AI processing using `face-api.js` for liveness detection and `Tesseract.js` for document OCR.
+
+---
+
+### ⛓️ Blockchain & Smart Contracts
+[![Solidity](https://img.shields.io/badge/Solidity-363636?style=for-the-badge&logo=solidity&logoColor=white)](https://soliditylang.org/)
+[![Ethereum](https://img.shields.io/badge/Ethereum-3C3C3D?style=for-the-badge&logo=Ethereum&logoColor=white)](https://ethereum.org/)
+[![Hardhat](https://img.shields.io/badge/Hardhat-FFF100?style=for-the-badge&logo=hardhat&logoColor=black)](https://hardhat.org/)
+[![OpenZeppelin](https://img.shields.io/badge/OpenZeppelin-4E5EE4?style=for-the-badge&logo=openzeppelin&logoColor=white)](https://www.openzeppelin.com/)
+
+* **Smart Contracts**: Secure Solidity contracts utilizing OpenZeppelin libraries for loan origination, fund escrow, and repayment logic.
+* **Networks**: Configured for local Ethereum testing (Hardhat Node) with deployment pipelines ready for Sepolia Testnet.
+* **Development Environment**: Hardhat for local blockchain testing, contract compilation, and deployment pipelines.
+
+---
+<div align="center">
+  <sub>Developed with ❤️ for TrustChains. All screenshots are authentic and captured directly from the live platform.</sub>
+</div>

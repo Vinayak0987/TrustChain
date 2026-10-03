@@ -4,6 +4,7 @@ import { AppSidebar } from './AppSidebar';
 import { AppTopbar } from './AppTopbar';
 import { MobileNav } from './MobileNav';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { MetaMaskSetupPanel } from '../shared/MetaMaskSetupPanel';
 import { useToast } from '../shared/ToastProvider';
 
 export const AppLayout = () => {
@@ -39,6 +40,7 @@ export const AppLayout = () => {
       <main className="app-main" id="app-main">
         <AppTopbar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <div className="app-content">
+          <MetaMaskSetupPanel />
           <Outlet />
         </div>
       </main>

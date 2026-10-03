@@ -6,7 +6,7 @@ import { useToast } from '../../components/shared/ToastProvider';
 import { fetchUserLoans, updateLoanStatus, createTransaction } from '../../utils/supabaseService';
 
 export const RepaymentPage = () => {
-  const { contract, account, rtkContract, trustScore, refreshTrustScore, refreshRTKBalance } = useContext(Web3Context);
+  const { contract, account, rtkContract, trustScore, refreshTrustScore } = useContext(Web3Context);
   const { user, setTrustScore } = useContext(AppContext);
   const showToast = useToast();
 
@@ -127,7 +127,6 @@ export const RepaymentPage = () => {
       }
 
       if (refreshTrustScore) await refreshTrustScore(account, contract);
-      if (refreshRTKBalance) await refreshRTKBalance();
       await fetchChainLoans();
     } catch (err) {
       console.error(err);

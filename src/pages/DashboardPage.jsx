@@ -123,7 +123,7 @@ export const DashboardPage = () => {
     }
   };
 
-  const liveScore = onChainScore ?? trustScore ?? 50;
+  const liveScore = (onChainScore && onChainScore > 0) ? onChainScore : (trustScore ?? 50);
   const activeChainLoans = chainLoans.filter(l => l.status === 1);
   const repaidChainLoans = chainLoans.filter(l => l.status === 2);
   const totalBorrowedChain = chainLoans.reduce((s, l) => s + l.principal, 0);

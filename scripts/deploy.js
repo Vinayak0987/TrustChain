@@ -6,10 +6,17 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import * as dotenv from "dotenv";
+dotenv.config();
+
 async function main() {
-  const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+  const rpcUrl = process.env.VITE_RPC_URL || "http://127.0.0.1:8545";
+  const pvtKey = process.env.DEPLOYER_PRIVATE_KEY || "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
   
-  const signer = new ethers.Wallet("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", provider);
+  console.log(`Connecting to network at: ${rpcUrl}...`);
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  
+  const signer = new ethers.Wallet(pvtKey, provider);
   let currentNonce = await provider.getTransactionCount(signer.address, "latest");
 
   // 1. Load and Deploy RTK Token
@@ -38,7 +45,10 @@ async function main() {
   // Automatically update the Web3Context payload with the new contract address
   const contextPath = path.join(__dirname, "../src/context/Web3Context.jsx");
   let contextFile = fs.readFileSync(contextPath, "utf8");
-  contextFile = contextFile.replace(/const CONTRACT_ADDRESS = "0x[a-fA-F0-9]+";/, `const CONTRACT_ADDRESS = "${address}";`);
+  contextFile = contextFile.replace(
+    /import\.meta\.env\.VITE_CONTRACT_ADDRESS \|\| "0x[a-fA-F0-9]+"/,
+    `import.meta.env.VITE_CONTRACT_ADDRESS || "${address}"`
+  );
   fs.writeFileSync(contextPath, contextFile);
   console.log("Updated Web3Context.jsx with new contract address.");
 }

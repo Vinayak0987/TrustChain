@@ -8,18 +8,19 @@ export const SimulationPage = () => {
   const [displayScore, setDisplayScore] = useState(0);
   useScrollAnimation('.animate-fade-in-up');
 
-  // We want to recalculate a purely simulated state for this page potentially?
-  // Actually, the original app shared the simulation sliders with the global state, 
-  // so moving the sliders actively changed the global `trustScore` locally. So we'll continue that behavior.
-  
+  // We calculate a purely simulated state for this page based on the sliders
   useEffect(() => {
-    setDisplayScore(trustScore);
-  }, [trustScore]);
+    let base = 40;
+    base += streak * 4;
+    base += { weak: 0, average: 8, strong: 18 }[podStrength] || 0;
+    base += { none: 0, phone: 5, ngo: 12 }[verification] || 0;
+    setDisplayScore(Math.min(100, base));
+  }, [streak, podStrength, verification]);
 
   const ARC_LENGTH = 282.7;
-  const dash = (trustScore / 100) * ARC_LENGTH;
-  const tier = scoreTier(trustScore);
-  const rate = calcSimRate(trustScore);
+  const dash = (displayScore / 100) * ARC_LENGTH;
+  const tier = scoreTier(displayScore);
+  const rate = calcSimRate(displayScore);
 
   return (
     <section className="screen active" aria-label="Trust Score Simulator">

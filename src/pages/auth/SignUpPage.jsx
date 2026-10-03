@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppContext } from '../../context/AppContext';
 import { supabase } from '../../utils/supabaseClient';
@@ -6,15 +6,27 @@ import { supabase } from '../../utils/supabaseClient';
 const inputStyle = {
   width: '100%', padding: '12px 16px', fontSize: '15px',
   fontFamily: 'inherit', color: '#1A2B3D', background: '#FFFFFF',
-  borderWidth: '1.5px', borderStyle: 'solid', borderColor: '#E8EDF2', borderRadius: '10px', outline: 'none',
+  border: '1.5px solid #E8EDF2', borderRadius: '10px', outline: 'none',
   transition: 'border-color 0.15s ease, box-shadow 0.15s ease', boxSizing: 'border-box',
 };
 const focusedStyle = { ...inputStyle, borderColor: '#3B9B9B', boxShadow: '0 0 0 3px rgba(59,155,155,0.15)' };
 const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#1A2B3D', marginBottom: '6px' };
 const groupStyle = { marginBottom: '16px' };
 
+const parseAuthError = (message) => {
+  const msg = message || '';
+  if (msg.toLowerCase().includes('fetch')) {
+    return 'Cannot reach Supabase. Check your internet/VPN, then try again.';
+  }
+  const waitMatch = msg.match(/after (\d+) seconds?/i);
+  if (waitMatch) {
+    return `Please wait ${waitMatch[1]} seconds before requesting another email.`;
+  }
+  return msg;
+};
+
 // ─── Step 1: Registration Form ──────────────────────────────
-const StepRegister = ({ onSuccess, loading, setLoading, setError, error }) => {
+const StepRegister = ({ onContinue, loading, setError, error }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,16 +40,7 @@ const StepRegister = ({ onSuccess, loading, setLoading, setError, error }) => {
     if (!name.trim()) return setError('Please enter your full name.');
     if (password !== confirm) return setError('Passwords do not match.');
     if (password.length < 6) return setError('Password must be at least 6 characters.');
-    setLoading(true);
-
-    const { error: err } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: name } }
-    });
-
-    setLoading(false);
-    if (err) return setError(err.message);
-    onSuccess({ name, email });
+    await onContinue({ name, email, password });
   };
 
   return (
@@ -77,14 +80,17 @@ const StepRegister = ({ onSuccess, loading, setLoading, setError, error }) => {
       </div>
       <button type="submit" id="signup-submit-btn" disabled={loading}
         style={{ width: '100%', padding: '14px', background: loading ? '#7FC8C8' : '#3B9B9B', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 16px rgba(59,155,155,0.3)' }}>
-        {loading ? 'Sending OTP...' : 'Create Account \u2192'}
+        {loading ? 'Sending OTP...' : 'Continue →'}
       </button>
     </form>
   );
 };
 
 // ─── Step 2: OTP Verification ───────────────────────────────
-const StepVerifyOtp = ({ email, onVerified, loading, setLoading, setError, error, onResend }) => {
+const StepVerifyOtp = ({
+  email, onVerified, onResend,
+  loading, setLoading, setError, error, resendCooldown,
+}) => {
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const refs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
 
@@ -117,20 +123,16 @@ const StepVerifyOtp = ({ email, onVerified, loading, setLoading, setError, error
 
     const { data, error: err } = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
     setLoading(false);
-    if (err) return setError('Invalid OTP. Please check your Gmail inbox and try again.');
+    if (err) return setError(err.message || 'Invalid OTP. Please check your Gmail inbox and try again.');
     onVerified(data.user);
   };
 
   return (
-    <form onSubmit={handleVerify}>
-      {/* Email hint */}
-      <div style={{ background: '#E6F4F4', border: '1px solid #B2DFDF', borderRadius: '12px', padding: '14px 16px', marginBottom: '24px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-        <span style={{ fontSize: '20px' }}>&#128140;</span>
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A2B3D' }}>Check your Gmail inbox</div>
-          <div style={{ fontSize: '12px', color: '#6B7B8D', marginTop: '2px' }}>
-            A 6-digit OTP was sent to <strong>{email}</strong>
-          </div>
+    <div>
+      <div style={{ background: '#E6F4F4', border: '1px solid #B2DFDF', borderRadius: '12px', padding: '14px 16px', marginBottom: '24px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A2B3D' }}>Check your inbox</div>
+        <div style={{ fontSize: '12px', color: '#6B7B8D', marginTop: '4px' }}>
+          Enter the 6-digit code sent to <strong>{email}</strong> (check spam).
         </div>
       </div>
 
@@ -140,45 +142,47 @@ const StepVerifyOtp = ({ email, onVerified, loading, setLoading, setError, error
         </div>
       )}
 
-      {/* OTP digit boxes */}
-      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '24px' }} onPaste={handlePaste}>
-        {digits.map((d, i) => (
-          <input
-            key={i}
-            ref={refs[i]}
-            id={`otp-digit-${i}`}
-            type="text"
-            inputMode="numeric"
-            maxLength={1}
-            value={d}
-            onChange={e => handleChange(e.target.value, i)}
-            onKeyDown={e => handleKeyDown(e, i)}
-            style={{
-              width: '48px', height: '56px', textAlign: 'center',
-              fontSize: '22px', fontWeight: 700, fontFamily: 'monospace',
-              border: d ? '2px solid #3B9B9B' : '1.5px solid #E8EDF2',
-              borderRadius: '12px', outline: 'none',
-              background: d ? '#E6F4F4' : '#FFFFFF',
-              color: '#1A2B3D', transition: 'all 0.15s ease',
-              boxShadow: d ? '0 0 0 3px rgba(59,155,155,0.1)' : 'none',
-            }}
-          />
-        ))}
-      </div>
+      <form onSubmit={handleVerify}>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '12px' }} onPaste={handlePaste}>
+          {digits.map((d, i) => (
+            <input
+              key={i}
+              ref={refs[i]}
+              id={`otp-digit-${i}`}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={d}
+              disabled={loading}
+              onChange={e => handleChange(e.target.value, i)}
+              onKeyDown={e => handleKeyDown(e, i)}
+              style={{
+                width: '48px', height: '56px', textAlign: 'center',
+                fontSize: '22px', fontWeight: 700, fontFamily: 'monospace',
+                border: d ? '2px solid #3B9B9B' : '1.5px solid #E8EDF2',
+                borderRadius: '12px', outline: 'none',
+                background: d ? '#E6F4F4' : '#FFFFFF',
+                color: '#1A2B3D', transition: 'all 0.15s ease',
+                boxShadow: d ? '0 0 0 3px rgba(59,155,155,0.1)' : 'none',
+              }}
+            />
+          ))}
+        </div>
 
-      <button type="submit" id="otp-verify-btn" disabled={loading}
-        style={{ width: '100%', padding: '14px', background: loading ? '#7FC8C8' : '#3B9B9B', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 16px rgba(59,155,155,0.3)' }}>
-        {loading ? 'Verifying...' : 'Verify Email \u2192'}
-      </button>
+        <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '13px', color: '#6B7B8D' }}>
+          Didn&#39;t receive the email?{' '}
+          <button type="button" onClick={onResend} disabled={loading || resendCooldown > 0}
+            style={{ background: 'none', border: 'none', color: resendCooldown > 0 ? '#9AABB8' : '#3B9B9B', fontWeight: 600, cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer', fontSize: '13px', padding: 0 }}>
+            {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
+          </button>
+        </div>
 
-      <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: '#6B7B8D' }}>
-        Didn&#39;t receive the email?{' '}
-        <button type="button" onClick={onResend}
-          style={{ background: 'none', border: 'none', color: '#3B9B9B', fontWeight: 600, cursor: 'pointer', fontSize: '13px', padding: 0 }}>
-          Resend OTP
+        <button type="submit" id="otp-verify-btn" disabled={loading}
+          style={{ width: '100%', padding: '14px', background: loading ? '#7FC8C8' : '#3B9B9B', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 16px rgba(59,155,155,0.3)' }}>
+          {loading ? 'Verifying...' : 'Verify Email →'}
         </button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 };
 
@@ -191,11 +195,59 @@ export const SignUpPage = () => {
   const [registeredName, setRegisteredName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const handleRegistered = ({ name, email }) => {
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+    const t = setInterval(() => {
+      setResendCooldown((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [resendCooldown]);
+
+  const handleContinue = async ({ name, email, password }) => {
+    setError('');
+    setLoading(true);
+    const emailRedirectTo = `${window.location.origin}/signup`;
+
+    const { data, error: err } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+        emailRedirectTo,
+      },
+    });
+
+    setLoading(false);
+    if (err) {
+      setError(parseAuthError(err.message));
+      return;
+    }
+
+    if (data?.user?.identities?.length === 0) {
+      setError('This email is already registered. Sign in instead.');
+      return;
+    }
+
+    if (data?.session) {
+      setUser({
+        id: data.user?.id,
+        name,
+        email,
+        initials: name.substring(0, 2).toUpperCase(),
+        avatarColor: '#3B9B9B',
+        trustScore: 0,
+        kycStatus: 'pending',
+      });
+      setIsLoggedIn(true);
+      navigate('/dashboard');
+      return;
+    }
+
     setRegisteredName(name);
     setRegisteredEmail(email);
-    setError('');
+    setResendCooldown(60);
     setStep(2);
   };
 
@@ -214,13 +266,26 @@ export const SignUpPage = () => {
   };
 
   const handleResend = async () => {
+    if (resendCooldown > 0) return;
     setError('');
-    const { error: err } = await supabase.auth.signInWithOtp({
+    setLoading(true);
+    const emailRedirectTo = `${window.location.origin}/signup`;
+    const { error: err } = await supabase.auth.resend({
+      type: 'signup',
       email: registeredEmail,
-      options: { shouldCreateUser: false }
+      options: { emailRedirectTo },
     });
-    if (err) setError(err.message);
-    else alert('OTP resent! Check your Gmail inbox.');
+    setLoading(false);
+    if (err) {
+      const parsed = parseAuthError(err.message);
+      setError(parsed);
+      const waitMatch = parsed.match(/wait (\d+) seconds/i);
+      if (waitMatch) setResendCooldown(Number(waitMatch[1]));
+      return;
+    }
+    setError('');
+    setResendCooldown(60);
+    alert('Verification email resent. Check inbox and spam.');
   };
 
   return (
@@ -260,13 +325,13 @@ export const SignUpPage = () => {
           {step === 1 ? 'Create your account' : 'Verify your email'}
         </h1>
         <p style={{ fontSize: '14px', color: '#6B7B8D', marginBottom: '24px' }}>
-          {step === 1 ? 'Join the decentralized trust economy.' : 'Enter the OTP sent to your Gmail.'}
+          {step === 1 ? 'Join the decentralized trust economy.' : 'Enter the 6-digit code we sent to your email.'}
         </p>
 
         {step === 1 && (
           <StepRegister
-            onSuccess={handleRegistered}
-            loading={loading} setLoading={setLoading}
+            onContinue={handleContinue}
+            loading={loading}
             error={error} setError={setError}
           />
         )}
@@ -276,6 +341,7 @@ export const SignUpPage = () => {
             email={registeredEmail}
             onVerified={handleVerified}
             onResend={handleResend}
+            resendCooldown={resendCooldown}
             loading={loading} setLoading={setLoading}
             error={error} setError={setError}
           />

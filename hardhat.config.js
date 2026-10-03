@@ -1,3 +1,6 @@
+import * as dotenv from "dotenv";
+dotenv.config();
+
 /** @type import('hardhat/config').HardhatUserConfig */
 export default {
   solidity: {
@@ -14,6 +17,11 @@ export default {
   networks: {
     hardhat: {
       chainId: 31337 // Default local chain
+    },
+    sepolia: {
+      url: process.env.VITE_RPC_URL || "", // Make sure this is your Alchemy Sepolia HTTPS URL
+      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+      chainId: 11155111
     }
   }
 };

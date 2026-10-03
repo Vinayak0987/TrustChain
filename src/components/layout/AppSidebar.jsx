@@ -22,15 +22,15 @@ const NavItem = ({ to, icon, label, badge, onClick }) => (
 
 export const AppSidebar = ({ isOpen, setSidebarOpen }) => {
   const close = () => { if (window.innerWidth <= 768) setSidebarOpen(false); };
-  const { account, trustScore, isRegistered, registerOnChain, registering } = useContext(Web3Context);
+  const { account, trustScore, isRegistered, registerOnChain, registering, registerError } = useContext(Web3Context);
   const { kycCompleted, user } = useContext(AppContext);
   const navigate = useNavigate();
   const showToast = useToast();
 
   const handleRegister = async () => {
     const ok = await registerOnChain();
-    if (ok && showToast) showToast('✅ Registered on-chain! TrustScore = 50', 'success');
-    else if (!ok && showToast) showToast('Registration rejected or failed. Try again.', 'error');
+    if (ok && showToast) showToast('Registered on-chain. TrustScore = 50', 'success');
+    else if (!ok && showToast) showToast(registerError || 'Registration failed. Confirm in MetaMask or run node scripts/deploy.js', 'error');
   };
 
   const handleLogout = async () => {

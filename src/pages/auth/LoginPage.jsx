@@ -10,9 +10,7 @@ const inputStyle = {
   fontFamily: 'inherit',
   color: '#1A2B3D',
   background: '#FFFFFF',
-  borderWidth: '1.5px',
-  borderStyle: 'solid',
-  borderColor: '#E8EDF2',
+  border: '1.5px solid #E8EDF2',
   borderRadius: '10px',
   outline: 'none',
   transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
@@ -65,7 +63,7 @@ export const LoginPage = () => {
       email: data.user.email,
       initials: (profile?.full_name || 'U').substring(0, 2).toUpperCase(),
       avatarColor: profile?.avatar_color || '#3B9B9B',
-      trustScore: 72,
+      trustScore: profile?.trust_score ?? 50,
       kycStatus: profile?.kyc_status || 'pending',
       walletAddress: profile?.wallet_address || null,
     });
@@ -163,7 +161,7 @@ export const LoginPage = () => {
               boxShadow: '0 4px 16px rgba(59,155,155,0.3)',
             }}
           >
-            {loading ? 'Signing in...' : 'Sign In \u2192'}
+            {loading ? 'Signing in...' : 'Sign In →'}
           </button>
         </form>
 
